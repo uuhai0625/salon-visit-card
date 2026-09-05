@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>サロン来店カードメーカー</title>
+<style>
+  :root {
+    --bg: #fdf6f7;
+    --panel: #ffffff;
+    --border: #f0dde2;
+    --text: #3a2b30;
+    --muted: #8a7379;
+    --accent: #c2185b;
+    --accent-dark: #9a1345;
+    --ok-bg: #fdeef3;
+    --locked: #b3a1a6;
+    --warn-bg: #fff3cd;
+    --warn-text: #7a5b00;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+  }
+  header {
+    background: linear-gradient(135deg, #d94f82, #9a1345);
+    color: #fff;
+    padding: 32px 20px 26px;
+    text-align: center;
+  }
+  header h1 { margin: 0 0 8px; font-size: 1.6rem; }
+  header p { margin: 0; opacity: .92; font-size: .95rem; }
+  .disclaimer {
+    max-width: 780px; margin: 18px auto 0;
+    background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.4);
+    border-radius: 8px; padding: 10px 14px; font-size: .82rem;
+  }
+  main { max-width: 860px; margin: 0 auto; padding: 24px 16px 60px; }
+  section.card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 12px;
+    padding: 20px; margin-bottom: 20px;
+  }
+  section.card h2 { margin: 0 0 4px; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
+  section.card .desc { color: var(--muted); font-size: .85rem; margin: 0 0 14px; }
+  .badge { display: inline-block; font-size: .7rem; padding: 2px 8px; border-radius: 999px; background: #eee; color: #4a4a4a; font-weight: bold; }
+  .badge.pro { background: #fff1cc; color: #8a6100; }
+
+  label.field { display: block; margin-bottom: 12px; }
+  label.field .lbl { font-size: .83rem; font-weight: bold; }
+  label.field input, label.field select, label.field textarea {
+    width: 100%; margin-top: 5px; padding: 8px 10px;
+    border: 1px solid var(--border); border-radius: 8px;
+    font-size: .92rem; font-family: inherit; background: #fffdfd;
+  }
+  label.field textarea { resize: vertical; min-height: 46px; }
+  .row2 { display: flex; gap: 12px; }
+  .row2 > * { flex: 1; }
+  .row3 { display: flex; gap: 12px; }
+  .row3 > * { flex: 1; }
+
+  .biz-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .biz-tab { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--border); background: #fffdfd; cursor: pointer; font-size: .85rem; }
+  .biz-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .ng-warn { background: var(--warn-bg); color: var(--warn-text); padding: 8px 12px; border-radius: 8px; font-size: .82rem; margin: 6px 0 14px; font-weight: bold; }
+
+  .btn-secondary {
+    background: #fff; border: 1px solid var(--border); color: var(--text);
+    padding: 8px 14px; border-radius: 8px; font-size: .82rem; cursor: pointer;
+  }
+  .btn-row { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+  .buy-btn {
+    display: inline-block; margin-top: 10px; background: var(--accent); color: #fff; font-weight: bold;
+    padding: 10px 22px; border-radius: 999px; text-decoration: none; font-size: .9rem;
+  }
+  .buy-btn:hover { background: var(--accent-dark); }
+
+  .cust-tab-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+  .cust-tab { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--border); background: #fffdfd; cursor: pointer; font-size: .85rem; }
+  .cust-tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+  .locked-panel {
+    border: 1px dashed var(--locked); border-radius: 10px; padding: 18px; text-align: center; color: var(--muted); background: #fdf9fa;
+  }
+  .locked-panel .feat-list { text-align: left; max-width: 460px; margin: 12px auto; font-size: .85rem; padding-left: 1.2em; }
+
+  .format-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+  .format-tab { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: #fffdfd; cursor: pointer; font-size: .85rem; }
+  .format-tab.active { background: var(--ok-bg); border-color: var(--accent); font-weight: bold; }
+  .format-tab.locked { opacity: .5; cursor: not-allowed; }
+
+  .preview-wrap { background: #f5e9ec; border-radius: 10px; padding: 20px; display: flex; justify-content: center; overflow-x: auto; }
+
+  .out-card {
+    width: 91mm; min-height: 55mm; background: #fff; border-radius: 6px; border: 1px solid #ccc;
+    padding: 12px 14px; font-size: 10px; position: relative; box-shadow: 0 2px 6px rgba(0,0,0,.1);
+  }
+  .out-card .cust-name { font-size: 15px; font-weight: bold; color: var(--accent-dark); }
+  .out-card .cust-sub { color: #666; font-size: 9px; margin-bottom: 6px; }
+  .out-card dl { font-size: 9.5px; margin: 0; }
+  .out-card dt { font-weight: bold; color: #5a5a5a; margin-top: 5px; }
+  .out-card dd { margin: 0 0 2px; }
+  .out-card .note { background: var(--warn-bg); color: var(--warn-text); padding: 3px 6px; border-radius: 4px; margin-top: 6px; font-size: 8.5px; }
+
+  .out-sheet { width: 210mm; min-height: 148mm; background: #fff; border: 1px solid #ccc; padding: 14mm 12mm; box-shadow: 0 2px 6px rgba(0,0,0,.1); }
+  .out-sheet h3 { border-bottom: 2px solid var(--accent); padding-bottom: 4px; font-size: 1.1rem; }
+  .out-sheet table.info { width: 100%; border-collapse: collapse; margin-bottom: 14px; table-layout: fixed; }
+  .out-sheet table.info td { border: 1px solid #ddd; padding: 6px 8px; font-size: .82rem; word-break: break-word; overflow-wrap: break-word; }
+  .out-sheet table.info td.k { background: #fbf3f5; width: 20%; font-weight: bold; color: #555; }
+
+  footer { max-width: 860px; margin: 0 auto; padding: 0 16px 40px; font-size: .76rem; color: var(--muted); }
+  footer .updated { font-weight: bold; }
+
+  @media print {
+    @page { size: A4; margin: 8mm; }
+    body * { visibility: hidden; }
+    #printArea, #printArea * { visibility: visible; }
+    #printArea { position: absolute; left: 0; top: 0; }
+    #printArea .out-sheet { width: auto; min-height: 0; padding: 0; border: none; box-shadow: none; }
+    body { background: #fff; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>サロン来店カードメーカー</h1>
+  <p>初回カウンセリングの内容を1回入力して、お客様用カードとサロン控えにまとめて出力</p>
+  <div class="disclaimer">
+    ⚠️ 本ツールはお客様から伺った内容を整形して出力するものです。効果・効能を保証する表現は自動生成しません。医療的判断は行っておらず、施術内容の最終判断は必ず有資格者としての専門知識に基づいて行ってください。
+  </div>
+</header>
+
+<main>
+
+  <section class="card">
+    <h2>① 業種を選ぶ</h2>
+    <div class="biz-tabs" id="bizTabs">
+      <div class="biz-tab" data-biz="hair">美容師(ヘア)</div>
+      <div class="biz-tab" data-biz="nail">ネイリスト</div>
+      <div class="biz-tab" data-biz="esthe">エステ</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>② お客様の情報を入力 <span class="badge" id="edition-badge">FREE版: 1名まで</span></h2>
+    <p class="desc">買い切り版では複数のお客様を登録できます。</p>
+
+    <div class="cust-tab-row" id="custTabs"></div>
+
+    <div id="custForm"></div>
+  </section>
+
+  <section class="card" id="format-section">
+    <h2>③ 出力形式を選ぶ</h2>
+    <div class="format-tabs" id="formatTabs">
+      <div class="format-tab active" data-fmt="card">お客様用カード</div>
+      <div class="format-tab" data-fmt="sheet" id="tab-sheet">サロン控え(全項目)</div>
+    </div>
+    <div class="preview-wrap" id="previewWrap"></div>
+    <div class="btn-row">
+      <button class="btn-secondary" id="printBtn">🖨️ この形式を印刷</button>
+    </div>
+  </section>
+
+  <section class="card" id="pro-section">
+    <h2>④ 複数名管理・全形式出力 <span class="badge pro">買い切り版</span></h2>
+    <div class="locked-panel">
+      <p>買い切り版(ダウンロード購入)では、以下が使えます:</p>
+      <ul class="feat-list">
+        <li>複数のお客様を登録して切り替え表示(顧客カルテとして継続利用可能)</li>
+        <li>サロン控え(スタッフ間共有用、全項目一覧)も出力可能</li>
+        <li>入力内容をこのブラウザに保存し、次回来店時に呼び出して更新・再印刷</li>
+      </ul>
+      <a class="buy-btn" href="#" id="buyLink" target="_blank" rel="noopener">買い切り版を見る(BOOTH)</a>
+    </div>
+  </section>
+
+  <section class="card" id="save-section" style="display:none;">
+    <h2>⑤ 入力内容の保存</h2>
+    <div class="btn-row" style="margin-top:0;">
+      <button class="btn-secondary" id="saveBtn">現在の内容をこのブラウザに保存</button>
+      <button class="btn-secondary" id="loadBtn">保存済みの内容を読み込む</button>
+    </div>
+    <p class="desc" id="saveStatus" style="margin:8px 0 0;"></p>
+  </section>
+
+</main>
+
+<footer>
+  <p><span class="updated">最終更新: 2026年9月時点の美容師・ネイリスト・エステ実務のカウンセリング項目、および薬機法・景品表示法上の表現規制を参考に作成。</span></p>
+  <p>本ツールは完全にブラウザ内で動作し、入力したお客様の情報はどこにも送信されません(開発者ツールのネットワークタブで通信が発生しないことをご確認いただけます)。全てお使いの端末内のみに保存されます。</p>
+</footer>
+
+<div id="printArea"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var EDITION = "free"; // "full" で買い切り完全版
+  var MAX_CUSTOMERS = EDITION === "full" ? 30 : 1;
+
+  var NG_WORDS = ["治る", "治す", "完治", "消える", "永久に", "必ず", "絶対に", "100%", "リバウンドしない", "副作用がない", "医学的に証明"];
+
+  function checkNgWords(text) {
+    var found = [];
+    NG_WORDS.forEach(function (w) {
+      if (text && text.indexOf(w) !== -1 && found.indexOf(w) === -1) found.push(w);
+    });
+    return found;
+  }
+
+  function newCustomer() {
+    return {
+      id: Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+      bizType: "hair",
+      name: "", visitDate: "", staffName: "",
+      motive: "", ngItems: "", allergies: "", contraindications: "",
+      // hair
+      hairType: "", hairDamageHistory: "", pastTreatment: "", stylingHabit: "", idealImage: "", scalpTrouble: "",
+      // nail
+      nailCondition: "", nailPastExperience: "", nailDesignPref: "", painLevel: "", nailPregnancy: "",
+      // esthe
+      skinType: "", skinTrouble: "", skincareRoutine: "", troubleHistory: "", lifestyle: "",
+      // 出力共通
+      nextVisitTiming: "", homeCare: "", cautionNote: "", nextMenu: ""
+    };
+  }
+
+  var customers = [newCustomer()];
+  var activeCustId = customers[0].id;
+  var activeFormat = "card";
+
+  function getActiveCust() {
+    for (var i = 0; i < customers.length; i++) if (customers[i].id === activeCustId) return customers[i];
+    return customers[0];
+  }
+
+  function esc(s) { return (s || "").toString().replace(/[<>&"']/g, function (c) { return { "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+
+  function makeKeyboardClickable(el) {
+    el.tabIndex = 0;
+    el.setAttribute("role", "button");
+    el.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); el.click(); }
+    });
+  }
+
+  function bizLabel(t) { return t === "hair" ? "美容師(ヘア)" : t === "nail" ? "ネイリスト" : "エステ"; }
+
+  function renderBizTabs() {
+    var c = getActiveCust();
+    Array.prototype.forEach.call(document.querySelectorAll(".biz-tab"), function (tab) {
+      makeKeyboardClickable(tab);
+      tab.classList.toggle("active", tab.dataset.biz === c.bizType);
+      tab.onclick = function () {
+        c.bizType = tab.dataset.biz;
+        renderBizTabs(); renderForm(); renderPreview();
+      };
+    });
+  }
+
+  function renderTabs() {
+    var el = document.getElementById("custTabs");
+    el.innerHTML = "";
+    customers.forEach(function (c, i) {
+      var tab = document.createElement("div");
+      tab.className = "cust-tab" + (c.id === activeCustId ? " active" : "");
+      tab.textContent = c.name || ("お客様" + (i + 1));
+      tab.addEventListener("click", function () { activeCustId = c.id; renderBizTabs(); renderTabs(); renderForm(); renderPreview(); });
+      makeKeyboardClickable(tab);
+      el.appendChild(tab);
+    });
+    if (customers.length < MAX_CUSTOMERS) {
+      var add = document.createElement("div");
+      add.className = "cust-tab";
+      add.textContent = "+ お客様を追加";
+      add.addEventListener("click", function () {
+        var nc = newCustomer(); customers.push(nc); activeCustId = nc.id; renderBizTabs(); renderTabs(); renderForm(); renderPreview();
+      });
+      makeKeyboardClickable(add);
+      el.appendChild(add);
+    } else if (EDITION !== "full") {
+      var lock = document.createElement("div");
+      lock.className = "cust-tab";
+      lock.style.opacity = ".5";
+      lock.textContent = "🔒 2名目以降は買い切り版";
+      el.appendChild(lock);
+    }
+  }
+
+  function field(labelText, inputHtml) {
+    return '<label class="field"><span class="lbl">' + labelText + '</span>' + inputHtml + '</label>';
+  }
+
+  function bizFieldsHtml(c) {
+    if (c.bizType === "hair") {
+      return '' +
+        '<div class="row2">' +
+          field("髪質・くせ", '<input id="f-hairType" value="' + esc(c.hairType) + '" placeholder="例) 硬毛・強めのくせ毛">') +
+          field("頭皮のトラブル", '<input id="f-scalpTrouble" value="' + esc(c.scalpTrouble) + '" placeholder="例) 乾燥しやすい">') +
+        '</div>' +
+        field("ダメージ履歴・過去の薬剤使用歴", '<textarea id="f-hairDamageHistory">' + esc(c.hairDamageHistory) + '</textarea>') +
+        field("過去の施術歴(パーマ・カラー等)", '<textarea id="f-pastTreatment">' + esc(c.pastTreatment) + '</textarea>') +
+        field("普段のスタイリング習慣", '<textarea id="f-stylingHabit">' + esc(c.stylingHabit) + '</textarea>') +
+        field("なりたいイメージ", '<textarea id="f-idealImage">' + esc(c.idealImage) + '</textarea>');
+    }
+    if (c.bizType === "nail") {
+      return '' +
+        '<div class="row2">' +
+          field("爪の状態", '<input id="f-nailCondition" value="' + esc(c.nailCondition) + '" placeholder="例) 薄い・割れやすい">') +
+          field("施術中の痛み・違和感", '<input id="f-painLevel" value="' + esc(c.painLevel) + '">') +
+        '</div>' +
+        field("過去のジェル・アクリル経験", '<textarea id="f-nailPastExperience">' + esc(c.nailPastExperience) + '</textarea>') +
+        field("デザインの好み", '<textarea id="f-nailDesignPref">' + esc(c.nailDesignPref) + '</textarea>') +
+        field("妊娠・皮膚疾患等の申告事項", '<textarea id="f-nailPregnancy">' + esc(c.nailPregnancy) + '</textarea>');
+    }
+    return '' +
+      '<div class="row2">' +
+        field("肌質", '<input id="f-skinType" value="' + esc(c.skinType) + '" placeholder="例) 乾燥肌・敏感肌">') +
+        field("肌トラブルの部位・内容", '<input id="f-skinTrouble" value="' + esc(c.skinTrouble) + '">') +
+      '</div>' +
+      field("普段のスキンケア方法", '<textarea id="f-skincareRoutine">' + esc(c.skincareRoutine) + '</textarea>') +
+      field("肌トラブルの既往歴", '<textarea id="f-troubleHistory">' + esc(c.troubleHistory) + '</textarea>') +
+      field("生活習慣(睡眠・食事等、気になる点)", '<textarea id="f-lifestyle">' + esc(c.lifestyle) + '</textarea>');
+  }
+
+  function updateNgWarn() {
+    var c = getActiveCust();
+    var combined = [c.motive, c.cautionNote, c.nextMenu, c.homeCare].join(" ");
+    var found = checkNgWords(combined);
+    var el = document.getElementById("ngWarn");
+    if (!el) return;
+    if (found.length) {
+      el.style.display = "block";
+      el.textContent = "⚠ 薬機法・景品表示法上、注意が必要な可能性がある表現が含まれています: 「" + found.join("」「") + "」。効果を確約しない表現(〜となる場合があります、等)への言い換えを検討してください。";
+    } else {
+      el.style.display = "none";
+    }
+  }
+
+  function renderForm() {
+    var c = getActiveCust();
+    var el = document.getElementById("custForm");
+
+    el.innerHTML =
+      '<div class="row3">' +
+        field("お名前", '<input id="f-name" value="' + esc(c.name) + '" placeholder="例) 山田 花子 様">') +
+        field("来店日", '<input id="f-visitDate" type="date" value="' + esc(c.visitDate) + '">') +
+        field("担当スタッフ", '<input id="f-staffName" value="' + esc(c.staffName) + '">') +
+      '</div>' +
+      field("来店動機・ご要望", '<textarea id="f-motive">' + esc(c.motive) + '</textarea>') +
+      '<div id="ngWarn" class="ng-warn" style="display:none;"></div>' +
+      '<div class="row2">' +
+        field("アレルギー", '<textarea id="f-allergies">' + esc(c.allergies) + '</textarea>') +
+        field("禁忌症・既往症(妊娠等、申告事項)", '<textarea id="f-contraindications">' + esc(c.contraindications) + '</textarea>') +
+      '</div>' +
+      field("苦手なこと・NG事項", '<textarea id="f-ngItems">' + esc(c.ngItems) + '</textarea>') +
+      '<div class="group-label" style="font-size:.78rem;color:var(--muted);margin:10px 0 4px;font-weight:bold;">' + esc(bizLabel(c.bizType)) + '向け項目</div>' +
+      bizFieldsHtml(c) +
+      '<div class="group-label" style="font-size:.78rem;color:var(--muted);margin:10px 0 4px;font-weight:bold;">お客様用カードに出す内容</div>' +
+      '<div class="row2">' +
+        field("次回来店の目安", '<input id="f-nextVisitTiming" value="' + esc(c.nextVisitTiming) + '" placeholder="例) 約2ヶ月後">') +
+        field("次回提案メニュー", '<input id="f-nextMenu" value="' + esc(c.nextMenu) + '">') +
+      '</div>' +
+      field("自宅でのお手入れ方法", '<textarea id="f-homeCare">' + esc(c.homeCare) + '</textarea>') +
+      field("注意事項(施術後の過ごし方など)", '<textarea id="f-cautionNote">' + esc(c.cautionNote) + '</textarea>');
+
+    Array.prototype.forEach.call(el.querySelectorAll("[id^=f-]"), function (input) {
+      var key = input.id.slice(2);
+      input.addEventListener("input", function () {
+        c[key] = input.value;
+        if (key === "name") renderTabs();
+        updateNgWarn();
+        renderPreview();
+      });
+    });
+
+    updateNgWarn();
+  }
+
+  function buildCardHtml(c) {
+    return '' +
+      '<div class="cust-name">' + esc(c.name || "(お名前未入力)") + '</div>' +
+      '<div class="cust-sub">' + esc(bizLabel(c.bizType)) + (c.visitDate ? "・" + esc(c.visitDate) + "ご来店" : "") + '</div>' +
+      '<dl>' +
+        '<dt>次回来店の目安</dt><dd>' + esc(c.nextVisitTiming || "-") + '</dd>' +
+        '<dt>次回提案メニュー</dt><dd>' + esc(c.nextMenu || "-") + '</dd>' +
+        '<dt>自宅でのお手入れ方法</dt><dd>' + esc(c.homeCare || "-") + '</dd>' +
+        '<dt>注意事項</dt><dd>' + esc(c.cautionNote || "-") + '</dd>' +
+      '</dl>' +
+      (c.allergies ? '<div class="note">⚠ アレルギー: ' + esc(c.allergies) + '</div>' : '') +
+      '<div class="note" style="background:#eee;color:#555;">担当: ' + esc(c.staffName || "-") + '</div>';
+  }
+
+  function bizSheetRows(c) {
+    if (c.bizType === "hair") {
+      return '' +
+        '<tr><td class="k">髪質・くせ</td><td>' + esc(c.hairType) + '</td><td class="k">頭皮トラブル</td><td>' + esc(c.scalpTrouble) + '</td></tr>' +
+        '<tr><td class="k">ダメージ履歴</td><td colspan="3">' + esc(c.hairDamageHistory) + '</td></tr>' +
+        '<tr><td class="k">過去の施術歴</td><td colspan="3">' + esc(c.pastTreatment) + '</td></tr>' +
+        '<tr><td class="k">スタイリング習慣</td><td colspan="3">' + esc(c.stylingHabit) + '</td></tr>' +
+        '<tr><td class="k">なりたいイメージ</td><td colspan="3">' + esc(c.idealImage) + '</td></tr>';
+    }
+    if (c.bizType === "nail") {
+      return '' +
+        '<tr><td class="k">爪の状態</td><td>' + esc(c.nailCondition) + '</td><td class="k">施術中の痛み</td><td>' + esc(c.painLevel) + '</td></tr>' +
+        '<tr><td class="k">過去のジェル/アクリル経験</td><td colspan="3">' + esc(c.nailPastExperience) + '</td></tr>' +
+        '<tr><td class="k">デザインの好み</td><td colspan="3">' + esc(c.nailDesignPref) + '</td></tr>' +
+        '<tr><td class="k">妊娠・皮膚疾患等</td><td colspan="3">' + esc(c.nailPregnancy) + '</td></tr>';
+    }
+    return '' +
+      '<tr><td class="k">肌質</td><td>' + esc(c.skinType) + '</td><td class="k">肌トラブル</td><td>' + esc(c.skinTrouble) + '</td></tr>' +
+      '<tr><td class="k">スキンケア方法</td><td colspan="3">' + esc(c.skincareRoutine) + '</td></tr>' +
+      '<tr><td class="k">トラブル既往歴</td><td colspan="3">' + esc(c.troubleHistory) + '</td></tr>' +
+      '<tr><td class="k">生活習慣</td><td colspan="3">' + esc(c.lifestyle) + '</td></tr>';
+  }
+
+  function buildSheetHtml(c) {
+    return '' +
+      '<h3>サロン控え(スタッフ共有用)</h3>' +
+      '<table class="info">' +
+        '<tr><td class="k">お名前</td><td>' + esc(c.name) + '</td><td class="k">来店日</td><td>' + esc(c.visitDate) + '</td></tr>' +
+        '<tr><td class="k">業種</td><td>' + esc(bizLabel(c.bizType)) + '</td><td class="k">担当</td><td>' + esc(c.staffName) + '</td></tr>' +
+        '<tr><td class="k">来店動機・要望</td><td colspan="3">' + esc(c.motive) + '</td></tr>' +
+        '<tr><td class="k">アレルギー</td><td colspan="3">' + esc(c.allergies || "特になし") + '</td></tr>' +
+        '<tr><td class="k">禁忌症・既往症</td><td colspan="3">' + esc(c.contraindications || "特になし") + '</td></tr>' +
+        '<tr><td class="k">苦手・NG事項</td><td colspan="3">' + esc(c.ngItems || "特になし") + '</td></tr>' +
+        bizSheetRows(c) +
+        '<tr><td class="k">次回来店目安</td><td>' + esc(c.nextVisitTiming) + '</td><td class="k">次回提案メニュー</td><td>' + esc(c.nextMenu) + '</td></tr>' +
+        '<tr><td class="k">自宅ケア方法</td><td colspan="3">' + esc(c.homeCare) + '</td></tr>' +
+        '<tr><td class="k">注意事項</td><td colspan="3">' + esc(c.cautionNote) + '</td></tr>' +
+      '</table>';
+  }
+
+  function renderPreview() {
+    var c = getActiveCust();
+    var el = document.getElementById("previewWrap");
+    var html = "";
+    if (activeFormat === "card") {
+      html = '<div class="out-card">' + buildCardHtml(c) + '</div>';
+    } else {
+      html = '<div class="out-sheet">' + buildSheetHtml(c) + '</div>';
+    }
+    el.innerHTML = html;
+    document.getElementById("printArea").innerHTML = html;
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll(".format-tab"), function (tab) {
+    makeKeyboardClickable(tab);
+    tab.addEventListener("click", function () {
+      var fmt = tab.dataset.fmt;
+      if (EDITION !== "full" && fmt !== "card") { alert("この出力形式は買い切り版で利用できます。"); return; }
+      activeFormat = fmt;
+      Array.prototype.forEach.call(document.querySelectorAll(".format-tab"), function (t) { t.classList.remove("active"); });
+      tab.classList.add("active");
+      renderPreview();
+    });
+  });
+
+  document.getElementById("printBtn").addEventListener("click", function () { window.print(); });
+
+  document.getElementById("edition-badge").textContent = EDITION === "full" ? "買い切り版: 複数名対応" : "FREE版: 1名まで";
+  if (EDITION === "full") {
+    document.getElementById("pro-section").style.display = "none";
+    document.getElementById("save-section").style.display = "block";
+    document.getElementById("tab-sheet").classList.remove("locked");
+  } else {
+    document.getElementById("tab-sheet").classList.add("locked");
+  }
+
+  // ============ 保存(買い切り版) ============
+  var SAVE_KEY = "salon_visit_card_customers_v1";
+  var saveBtn = document.getElementById("saveBtn");
+  var loadBtn = document.getElementById("loadBtn");
+  if (saveBtn) {
+    saveBtn.addEventListener("click", function () {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify(customers));
+        document.getElementById("saveStatus").textContent = "保存しました(" + new Date().toLocaleString() + ")";
+      } catch (e) {
+        document.getElementById("saveStatus").textContent = "保存に失敗しました(ブラウザの保存容量やプライベートブラウジング設定をご確認ください)。";
+      }
+    });
+    loadBtn.addEventListener("click", function () {
+      var raw;
+      try { raw = localStorage.getItem(SAVE_KEY); } catch (e) { document.getElementById("saveStatus").textContent = "読み込みに失敗しました。"; return; }
+      if (!raw) { document.getElementById("saveStatus").textContent = "保存されたデータがありません。"; return; }
+      try {
+        var loaded = JSON.parse(raw);
+        if (loaded && loaded.length) {
+          var normalized = loaded.map(function (c) {
+            var base = newCustomer();
+            for (var k in base) { if (c && c[k] !== undefined) base[k] = c[k]; }
+            if (base.bizType !== "hair" && base.bizType !== "nail" && base.bizType !== "esthe") base.bizType = "hair";
+            return base;
+          });
+          customers = normalized; activeCustId = customers[0].id;
+          renderBizTabs(); renderTabs(); renderForm(); renderPreview();
+          document.getElementById("saveStatus").textContent = "読み込みました。";
+        }
+      } catch (e) { document.getElementById("saveStatus").textContent = "読み込みに失敗しました。"; }
+    });
+  }
+
+  renderBizTabs();
+  renderTabs();
+  renderForm();
+  renderPreview();
+})();
+</script>
+</body>
+</html>
