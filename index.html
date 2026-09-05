@@ -103,24 +103,25 @@
   .out-card .cust-sub { color: #666; font-size: 9px; margin-bottom: 6px; }
   .out-card dl { font-size: 9.5px; margin: 0; }
   .out-card dt { font-weight: bold; color: #5a5a5a; margin-top: 5px; }
-  .out-card dd { margin: 0 0 2px; }
-  .out-card .note { background: var(--warn-bg); color: var(--warn-text); padding: 3px 6px; border-radius: 4px; margin-top: 6px; font-size: 8.5px; }
+  .out-card dd { margin: 0 0 2px; white-space: pre-wrap; }
+  .out-card .note { background: var(--warn-bg); color: var(--warn-text); padding: 3px 6px; border-radius: 4px; margin-top: 6px; font-size: 8.5px; white-space: pre-wrap; }
 
   .out-sheet { width: 210mm; min-height: 148mm; background: #fff; border: 1px solid #ccc; padding: 14mm 12mm; box-shadow: 0 2px 6px rgba(0,0,0,.1); }
   .out-sheet h3 { border-bottom: 2px solid var(--accent); padding-bottom: 4px; font-size: 1.1rem; }
   .out-sheet table.info { width: 100%; border-collapse: collapse; margin-bottom: 14px; table-layout: fixed; }
-  .out-sheet table.info td { border: 1px solid #ddd; padding: 6px 8px; font-size: .82rem; word-break: break-word; overflow-wrap: break-word; }
+  .out-sheet table.info td { border: 1px solid #ddd; padding: 6px 8px; font-size: .82rem; word-break: break-word; overflow-wrap: break-word; white-space: pre-wrap; }
   .out-sheet table.info td.k { background: #fbf3f5; width: 20%; font-weight: bold; color: #555; }
+  .out-sheet table.info tr.warn-row td { background: #fff3cd; color: #7a5b00; font-weight: bold; }
+  .out-sheet table.info tr.warn-row td.k { background: #ffe9a8; }
 
   footer { max-width: 860px; margin: 0 auto; padding: 0 16px 40px; font-size: .76rem; color: var(--muted); }
   footer .updated { font-weight: bold; }
 
   @media print {
     @page { size: A4; margin: 8mm; }
-    body * { visibility: hidden; }
-    #printArea, #printArea * { visibility: visible; }
-    #printArea { position: absolute; left: 0; top: 0; }
+    header, main, footer { display: none !important; }
     #printArea .out-sheet { width: auto; min-height: 0; padding: 0; border: none; box-shadow: none; }
+    #printArea .out-card { box-shadow: none; }
     body { background: #fff; }
   }
 </style>
@@ -194,6 +195,7 @@
 <footer>
   <p><span class="updated">最終更新: 2026年9月時点の美容師・ネイリスト・エステ実務のカウンセリング項目、および薬機法・景品表示法上の表現規制を参考に作成。</span></p>
   <p>本ツールは完全にブラウザ内で動作し、入力したお客様の情報はどこにも送信されません(開発者ツールのネットワークタブで通信が発生しないことをご確認いただけます)。全てお使いの端末内のみに保存されます。</p>
+  <p>動作不良等でご満足いただけない場合は、購入後7日以内にBOOTHメッセージまたはXにてご連絡いただければ返金対応いたします。</p>
 </footer>
 
 <div id="printArea"></div>
@@ -205,7 +207,7 @@
   var EDITION = "free"; // "full" で買い切り完全版
   var MAX_CUSTOMERS = EDITION === "full" ? 30 : 1;
 
-  var NG_WORDS = ["治る", "治す", "完治", "消える", "永久に", "必ず", "絶対に", "100%", "リバウンドしない", "副作用がない", "医学的に証明"];
+  var NG_WORDS = ["治る", "治す", "完治", "消える", "永久に", "永久脱毛", "必ず", "絶対に", "100%", "リバウンドしない", "副作用がない", "医学的に証明", "若返る", "アンチエイジング", "小顔効果", "発毛", "体質改善", "劇的", "即効"];
 
   function checkNgWords(text) {
     var found = [];
@@ -256,8 +258,13 @@
   function renderBizTabs() {
     var c = getActiveCust();
     Array.prototype.forEach.call(document.querySelectorAll(".biz-tab"), function (tab) {
-      makeKeyboardClickable(tab);
-      tab.classList.toggle("active", tab.dataset.biz === c.bizType);
+      if (!tab.dataset.kbBound) {
+        makeKeyboardClickable(tab);
+        tab.dataset.kbBound = "1";
+      }
+      var isActive = tab.dataset.biz === c.bizType;
+      tab.classList.toggle("active", isActive);
+      tab.setAttribute("aria-selected", isActive ? "true" : "false");
       tab.onclick = function () {
         c.bizType = tab.dataset.biz;
         renderBizTabs(); renderForm(); renderPreview();
@@ -271,6 +278,7 @@
     customers.forEach(function (c, i) {
       var tab = document.createElement("div");
       tab.className = "cust-tab" + (c.id === activeCustId ? " active" : "");
+      tab.setAttribute("aria-selected", c.id === activeCustId ? "true" : "false");
       tab.textContent = c.name || ("お客様" + (i + 1));
       tab.addEventListener("click", function () { activeCustId = c.id; renderBizTabs(); renderTabs(); renderForm(); renderPreview(); });
       makeKeyboardClickable(tab);
@@ -332,7 +340,10 @@
 
   function updateNgWarn() {
     var c = getActiveCust();
-    var combined = [c.motive, c.cautionNote, c.nextMenu, c.homeCare].join(" ");
+    var combined = [
+      c.motive, c.cautionNote, c.nextMenu, c.homeCare,
+      c.idealImage, c.nailDesignPref, c.hairDamageHistory, c.pastTreatment, c.stylingHabit, c.skincareRoutine
+    ].join(" ");
     var found = checkNgWords(combined);
     var el = document.getElementById("ngWarn");
     if (!el) return;
@@ -355,7 +366,7 @@
         field("担当スタッフ", '<input id="f-staffName" value="' + esc(c.staffName) + '">') +
       '</div>' +
       field("来店動機・ご要望", '<textarea id="f-motive">' + esc(c.motive) + '</textarea>') +
-      '<div id="ngWarn" class="ng-warn" style="display:none;"></div>' +
+      '<div id="ngWarn" class="ng-warn" role="alert" aria-live="polite" style="display:none;"></div>' +
       '<div class="row2">' +
         field("アレルギー", '<textarea id="f-allergies">' + esc(c.allergies) + '</textarea>') +
         field("禁忌症・既往症(妊娠等、申告事項)", '<textarea id="f-contraindications">' + esc(c.contraindications) + '</textarea>') +
@@ -428,8 +439,8 @@
         '<tr><td class="k">お名前</td><td>' + esc(c.name) + '</td><td class="k">来店日</td><td>' + esc(c.visitDate) + '</td></tr>' +
         '<tr><td class="k">業種</td><td>' + esc(bizLabel(c.bizType)) + '</td><td class="k">担当</td><td>' + esc(c.staffName) + '</td></tr>' +
         '<tr><td class="k">来店動機・要望</td><td colspan="3">' + esc(c.motive) + '</td></tr>' +
-        '<tr><td class="k">アレルギー</td><td colspan="3">' + esc(c.allergies || "特になし") + '</td></tr>' +
-        '<tr><td class="k">禁忌症・既往症</td><td colspan="3">' + esc(c.contraindications || "特になし") + '</td></tr>' +
+        '<tr class="' + (c.allergies ? "warn-row" : "") + '"><td class="k">' + (c.allergies ? "⚠ " : "") + 'アレルギー</td><td colspan="3">' + esc(c.allergies || "特になし") + '</td></tr>' +
+        '<tr class="' + (c.contraindications ? "warn-row" : "") + '"><td class="k">' + (c.contraindications ? "⚠ " : "") + '禁忌症・既往症</td><td colspan="3">' + esc(c.contraindications || "特になし") + '</td></tr>' +
         '<tr><td class="k">苦手・NG事項</td><td colspan="3">' + esc(c.ngItems || "特になし") + '</td></tr>' +
         bizSheetRows(c) +
         '<tr><td class="k">次回来店目安</td><td>' + esc(c.nextVisitTiming) + '</td><td class="k">次回提案メニュー</td><td>' + esc(c.nextMenu) + '</td></tr>' +
@@ -457,8 +468,9 @@
       var fmt = tab.dataset.fmt;
       if (EDITION !== "full" && fmt !== "card") { alert("この出力形式は買い切り版で利用できます。"); return; }
       activeFormat = fmt;
-      Array.prototype.forEach.call(document.querySelectorAll(".format-tab"), function (t) { t.classList.remove("active"); });
+      Array.prototype.forEach.call(document.querySelectorAll(".format-tab"), function (t) { t.classList.remove("active"); t.setAttribute("aria-selected", "false"); });
       tab.classList.add("active");
+      tab.setAttribute("aria-selected", "true");
       renderPreview();
     });
   });
@@ -493,7 +505,7 @@
       if (!raw) { document.getElementById("saveStatus").textContent = "保存されたデータがありません。"; return; }
       try {
         var loaded = JSON.parse(raw);
-        if (loaded && loaded.length) {
+        if (Array.isArray(loaded) && loaded.length) {
           var normalized = loaded.map(function (c) {
             var base = newCustomer();
             for (var k in base) { if (c && c[k] !== undefined) base[k] = c[k]; }
@@ -503,6 +515,8 @@
           customers = normalized; activeCustId = customers[0].id;
           renderBizTabs(); renderTabs(); renderForm(); renderPreview();
           document.getElementById("saveStatus").textContent = "読み込みました。";
+        } else {
+          document.getElementById("saveStatus").textContent = "保存データの形式が正しくないため読み込めませんでした。";
         }
       } catch (e) { document.getElementById("saveStatus").textContent = "読み込みに失敗しました。"; }
     });
